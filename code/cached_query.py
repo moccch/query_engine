@@ -2,6 +2,7 @@ import sqlite3
 import re
 import time
 from two_models import ner_model, summarizer_model
+import random
 
 text_data = [
     (0, """The World Health Organization (WHO) is a specialized agency of the United Nations that is responsible for international 
@@ -116,7 +117,29 @@ text_data = [
          excellence and research achievements in a wide range of disciplines, including science, humanities, and social sciences."""),
     (29, """The United Nations (UN) is an intergovernmental organization that was founded in 1945 to promote international 
          cooperation and peace. It is headquartered in New York City and has 193 member states. The UN is known for its efforts in 
-         conflict resolution, disaster relief, and sustainable development, among other issues.""")
+         conflict resolution, disaster relief, and sustainable development, among other issues."""),
+    (30, """The World Health Organization (WHO) is a specialized agency of the United Nations that is responsible for international 
+         public health. It was established in 1948 and is headquartered in Geneva, Switzerland. The WHO is responsible for 
+         coordinating and supporting efforts to improve public health around the world, including efforts to combat infectious 
+         diseases, promote healthy lifestyles, and provide access to essential medicines and vaccines."""),
+    (31, """Amazon.com, Inc. is an American multinational technology company that focuses on e-commerce, cloud computing, digital 
+         streaming, and artificial intelligence. It is one of the Big Five companies in the U.S. information technology industry, 
+         along with Google, Apple, Microsoft, and Facebook. Amazon was founded in 1994 by Jeff Bezos and is headquartered in Seattle, 
+         Washington. The company is known for its online shopping platform, Amazon.com, as well as its cloud computing platform, 
+         Amazon Web Services (AWS)."""),
+    (32, """The European Union (EU) is a political and economic union of 27 member states located primarily in Europe. It was 
+         established in 1993 with the signing of the Maastricht Treaty and is headquartered in Brussels, Belgium. The EU is known 
+         for its efforts to promote economic cooperation and political stability among its member states, as well as its efforts 
+         to promote democracy, human rights, and environmental sustainability around the world."""),
+    (33, """Tesla, Inc. is an American electric vehicle and clean energy company that designs and manufactures electric cars, 
+         battery energy storage, and solar products. It was founded in 2003 by Elon Musk and is headquartered in Palo Alto, 
+         California. Tesla is known for its electric cars, such as the Model S, Model X, Model 3, and Model Y, as well as its 
+         innovative battery technology and solar products. The company is a leader in the transition to sustainable energy and 
+         has a mission to accelerate the world's transition to sustainable energy."""),
+    (34, """The International Monetary Fund (IMF) is an international organization that was established in 1944 to promote 
+         international monetary cooperation, facilitate international trade, and foster economic growth and stability. It is 
+         headquartered in Washington, D.C. and has 190 member countries. The IMF is known for its efforts to provide financial 
+         assistance to countries in need, as well as its research and analysis of economic trends and policies around the world.""")
 ]
 
 summary_cached_dic = {}
@@ -196,10 +219,26 @@ def insert_ner_table(summary_id):
 
     return
 
+def uniformly_sampling(sample_size=10):
+    connection = sqlite3.connect('newAIDB.db')
+    cursor = connection.cursor()
+
+    # Get a random sample of rows from ner_table
+    numbers = list(range(1, len(text_data)))
+    random.shuffle(numbers)
+    selected_numbers = tuple(numbers[:sample_size])
+    cursor.execute(f"SELECT * FROM ner_table WHERE summary_id IN {selected_numbers}")
+    sampled_rows = cursor.fetchall()
+    print(sampled_rows)
+    return len(sampled_rows)*len(text_data)/sample_size
+
+
+
 def mvp_query_engine(query):
     # Parse the query
     query_parts = query.lower().split()
     select_index = query_parts.index("select")
+    count_index = query_parts.index("count(*)") if "count(*)" in query_parts else -1
     from_index = query_parts.index("from")
     where_index = query_parts.index("where") if "where" in query_parts else -1
 
@@ -207,6 +246,10 @@ def mvp_query_engine(query):
     columns = " ".join(query_parts[select_index + 1:from_index]).split(", ")
     table = query_parts[from_index + 1]
     condition = " ".join(query_parts[where_index + 1:]) if where_index != -1 else None
+
+    if (count_index != -1):
+        res = uniformly_sampling()
+        return res
 
     equal_match = re.search(r"(\w+)\s*=\s*('([^']+)'|(\d+))", condition)
     column, value = equal_match.group(1), equal_match.group(3) or equal_match.group(4)
@@ -231,17 +274,17 @@ def mvp_query_engine(query):
 
 
 def main():
-    create_table()
+    # create_table()
 
     connection = sqlite3.connect('newAIDB.db')
     cursor = connection.cursor()
 
     ## insert summary
     # insert_ner_table(6)
-    # insert_summary_table(6)
+    # insert_summary_table(20)
 
-    query = "SELECT summary_id, word, entity FROM ner_table WHERE summary_id = 6"
-    # query = "SELECT base_id, summary FROM summary_table WHERE base_id = 6"
+    # query = "SELECT summary_id, word, entity FROM ner_table WHERE summary_id = 20"
+    query = "SELECT base_id, summary FROM summary_table WHERE base_id = 6"
 
 
     print('\n')
@@ -261,6 +304,29 @@ def main():
     query_time = query_end_time - query_start_time
     print(results)
     print(f"Normal Query time: {query_time:.8f} seconds")
+
+
+    # print('\n')
+    # for i in range(len(text_data)):
+    #     insert_ner_table(i)
+    # approximate_query = "SELECT COUNT(*) FROM ner_table"
+
+    # print('--------------------------------Exact query------------------------------------')
+    # query_start_time = time.perf_counter()
+    # cursor.execute(approximate_query)
+    # results = cursor.fetchall()
+    # query_end_time = time.perf_counter()
+    # query_time = query_end_time - query_start_time
+    # print(results[0][0])
+    # print(f"Normal Query time: {query_time:.8f} seconds")
+
+    # print('--------------------------------Approximate query------------------------------------')
+    # query_start_time = time.perf_counter()
+    # results = mvp_query_engine(approximate_query)
+    # query_end_time = time.perf_counter()
+    # query_time = query_end_time - query_start_time
+    # print(results)
+    # print(f"Approximate Query time: {query_time:.8f} seconds")
 
 
 if __name__ == "__main__":

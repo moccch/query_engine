@@ -151,7 +151,7 @@ def create_table():
 
     # Create a sample table
     cursor.execute("""
-    CREATE TABLE base_table (
+    CREATE TABLE IF NOT EXISTS base_table (
         id INTEGER PRIMARY KEY,
         passage TEXT
     )
@@ -159,7 +159,7 @@ def create_table():
 
     # Create a table for text summary
     cursor.execute("""
-    CREATE TABLE summary_table (
+    CREATE TABLE IF NOT EXISTS summary_table (
         id INTEGER PRIMARY KEY,
         base_id INTEGER,
         summary TEXT
@@ -168,7 +168,7 @@ def create_table():
 
     # Create a table for summary NER
     cursor.execute("""
-    CREATE TABLE ner_table (
+    CREATE TABLE IF NOT EXISTS ner_table (
         id INTEGER PRIMARY KEY,
         summary_id INTEGER,
         word TEXT,
@@ -219,18 +219,18 @@ def insert_ner_table(summary_id):
 
     return
 
-def uniformly_sampling(sample_size=10):
-    connection = sqlite3.connect('newAIDB.db')
-    cursor = connection.cursor()
+# def uniformly_sampling(sample_size=10):
+#     connection = sqlite3.connect('newAIDB.db')
+#     cursor = connection.cursor()
 
-    # Get a random sample of rows from ner_table
-    numbers = list(range(1, len(text_data)))
-    random.shuffle(numbers)
-    selected_numbers = tuple(numbers[:sample_size])
-    cursor.execute(f"SELECT * FROM ner_table WHERE summary_id IN {selected_numbers}")
-    sampled_rows = cursor.fetchall()
-    print(sampled_rows)
-    return len(sampled_rows)*len(text_data)/sample_size
+#     # Get a random sample of rows from ner_table
+#     numbers = list(range(1, len(text_data)))
+#     random.shuffle(numbers)
+#     selected_numbers = tuple(numbers[:sample_size])
+#     cursor.execute(f"SELECT * FROM ner_table WHERE summary_id IN {selected_numbers}")
+#     sampled_rows = cursor.fetchall()
+#     print(sampled_rows)
+#     return len(sampled_rows)*len(text_data)/sample_size
 
 
 
@@ -247,9 +247,9 @@ def mvp_query_engine(query):
     table = query_parts[from_index + 1]
     condition = " ".join(query_parts[where_index + 1:]) if where_index != -1 else None
 
-    if (count_index != -1):
-        res = uniformly_sampling()
-        return res
+    # if (count_index != -1):
+    #     res = uniformly_sampling()
+    #     return res
 
     equal_match = re.search(r"(\w+)\s*=\s*('([^']+)'|(\d+))", condition)
     column, value = equal_match.group(1), equal_match.group(3) or equal_match.group(4)
@@ -274,17 +274,17 @@ def mvp_query_engine(query):
 
 
 def main():
-    # create_table()
+    create_table()
 
     connection = sqlite3.connect('newAIDB.db')
     cursor = connection.cursor()
 
     ## insert summary
-    # insert_ner_table(6)
-    # insert_summary_table(20)
+    # insert_ner_table(20)
+    insert_summary_table(20)
 
-    # query = "SELECT summary_id, word, entity FROM ner_table WHERE summary_id = 20"
-    query = "SELECT base_id, summary FROM summary_table WHERE base_id = 6"
+    query = "SELECT summary_id, word, entity FROM ner_table WHERE summary_id = 20"
+    # query = "SELECT base_id, summary FROM summary_table WHERE base_id = 6"
 
 
     print('\n')
@@ -304,29 +304,6 @@ def main():
     query_time = query_end_time - query_start_time
     print(results)
     print(f"Normal Query time: {query_time:.8f} seconds")
-
-
-    # print('\n')
-    # for i in range(len(text_data)):
-    #     insert_ner_table(i)
-    # approximate_query = "SELECT COUNT(*) FROM ner_table"
-
-    # print('--------------------------------Exact query------------------------------------')
-    # query_start_time = time.perf_counter()
-    # cursor.execute(approximate_query)
-    # results = cursor.fetchall()
-    # query_end_time = time.perf_counter()
-    # query_time = query_end_time - query_start_time
-    # print(results[0][0])
-    # print(f"Normal Query time: {query_time:.8f} seconds")
-
-    # print('--------------------------------Approximate query------------------------------------')
-    # query_start_time = time.perf_counter()
-    # results = mvp_query_engine(approximate_query)
-    # query_end_time = time.perf_counter()
-    # query_time = query_end_time - query_start_time
-    # print(results)
-    # print(f"Approximate Query time: {query_time:.8f} seconds")
 
 
 if __name__ == "__main__":

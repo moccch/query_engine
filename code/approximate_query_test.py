@@ -248,7 +248,7 @@ def create_table():
 
     # Create a sample table
     cursor.execute("""
-    CREATE TABLE base_table (
+    CREATE TABLE IF NOT EXISTS base_table (
         id INTEGER PRIMARY KEY,
         sentence TEXT
     )
@@ -256,7 +256,7 @@ def create_table():
 
     # Create a sample table
     cursor.execute("""
-    CREATE TABLE mapping_table (
+    CREATE TABLE IF NOT EXISTS mapping_table (
         id INTEGER PRIMARY KEY,
         base_id INTEGER,
         word TEXT,
@@ -266,7 +266,7 @@ def create_table():
 
 
     cursor.execute("""
-    CREATE TABLE sample_mapping_table (
+    CREATE TABLE IF NOT EXISTS sample_mapping_table (
         id INTEGER PRIMARY KEY,
         base_id INTEGER,
         word TEXT,
@@ -359,7 +359,7 @@ def main():
     # # ------------------------------- create table -----------------------------------
     # create_table()
 
-    # # # ## generating rows
+    # # ## generating rows
     # create_start_time = time.perf_counter()
     # for i, _ in enumerate(data): 
     #     insert_mapping_table(i)
@@ -418,10 +418,10 @@ def main():
     
     ######## Run accurate query
     # for _ in range(query_round):
-        # start_time = time.perf_counter()
-        # run_accurate_query(cursor)
-        # end_time = time.perf_counter()
-        # query_time = end_time - start_time
+    #     start_time = time.perf_counter()
+    #     run_accurate_query(cursor)
+    #     end_time = time.perf_counter()
+    #     query_time = end_time - start_time
         # accurate_query_times.append(query_time)
 
     # ######Run approximate query
